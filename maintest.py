@@ -24,7 +24,7 @@ if response.ok:
     universal_product_code = table[0].text
     price_including_tax = table[2].text.replace('£', '')
     price_excluding_tax = table[3].text.replace('£', '')
-    number_available = table[5].text.removeprefix('In stock (').removesuffix('available)')
+    #number_available = table[5].text.removeprefix('In stock (').removesuffix('available)')
     product_description_unicode = soup.select_one('article > p').text
     product_description = unidecode.unidecode(product_description_unicode)
     #category
@@ -42,7 +42,17 @@ if response.ok:
             "image":image,}
             #"number_available":number_available}
 
-    print(book)
+    #print(book)
+
+
+
+
+print( "📕 Le titre du livre est :" , title  )
+print( "📖La déscription du livre est :" , product_description )
+print( "🔎Le code Universel de produit :" , universal_product_code )
+print( "💰Le prix en incluant les taxes :" , price_including_tax )
+print( "💸Le prix en excluant les taxes :" , price_excluding_tax )
+print( "📊La note du livre :" , review_rating," ⭐" )
 
 # Créer une liste pour les en-têtes
 #en_tete = ["title", "product_description"]
@@ -52,5 +62,24 @@ en_tete = ["product_page_url","title"]
 with open('data.csv', 'w') as fichier_csv:
    # Créer un objet writer (écriture) avec ce fichier
    writer = csv.writer(fichier_csv, delimiter=',')
-   writer.writerow(en_tete)
- 
+   #writer.writerow(en_tete)
+   writer.writerow(['product_page_url',
+                    'title',
+                    'product_description',
+                    'universal_product_code',
+                    'price_including_tax',
+                    'price_excluding_tax',
+                    'review_rating'])
+      
+   writer.writerow([product_page_url,
+                    title,
+                    product_description,
+                    universal_product_code,
+                    price_including_tax,
+                    price_excluding_tax,
+                    review_rating ])
+
+print(" 💾 Votre fichier CSV viens d'être crée. Vous pouvez le télécharger !")
+
+
+

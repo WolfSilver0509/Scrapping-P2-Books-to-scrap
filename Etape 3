@@ -1,0 +1,167 @@
+# -- import lib 
+# Import des librairies
+import requests
+from bs4 import BeautifulSoup as bs
+
+import os
+import csv
+import unidecode
+
+# ----------------------- Test TTes CatégorieS  -----------
+
+url = "https://books.toscrape.com/"
+reponse = requests.get(url)
+page = reponse.content
+soup = bs(page, "html.parser")
+
+links_catgs = []
+nom_catgs = []
+
+# permet d'aller récupérer les liens des catégories
+for ul in soup.find_all('ul', class_='nav nav-list'):
+    for li in ul.find_all('li'):
+        a = li.find('a')
+        link = a['href']
+        links_catgs.append("https://books.toscrape.com/" + link)
+
+  #       while True:
+  #   # print(i )
+  #   response = requests.get(i )
+  # # print(response)
+  #   soup = bs(response.content, 'html.parser')
+  #   footer = soup.select_one('li.current')
+  #   print(footer.text.strip())
+  #   next_page = soup.select_one('li.next>a')
+  #   if next_page:
+  #     next_url = next_page.get('href')
+  #     url = urljoin(i , next_url)
+  # else:
+  #   break
+
+# print(links_catgs) # Récupération Liens des catégories
+
+# permet d'aller récupérer le nom des catégories       
+for ul in soup.find_all('ul', class_='nav nav-list'):
+    for li in ul.find_all('li'):
+        a = li.find('a')
+        category = a.text
+        nom_catgs.append(category.replace("\n", "").replace(" ", ""))
+
+# print(nom_catgs) # Récupération des Noms des catégories
+
+
+# # suppression du premier lien et du premier nom de la liste ( book qui n'est pas une catégories )
+del links_catgs[0]
+del nom_catgs[0]
+
+# création du dossier category en locale auto
+if not os.path.isdir('category'):
+    os.system('mkdir category')
+
+# création des dossiers avec le nom des catégories au complet
+for category in nom_catgs:
+    str(category)
+    if not os.path.isdir('category/' + category):
+        os.system('mkdir category/' + category)
+        # os.makedirs('category/'+ category)
+
+def recup_all(links_catgs):
+  for link in links_catgs:
+    url_category = link
+    def etape2(url_category):
+      # -- Création variable : un tableau avec tous les livres dedans 
+      all_books_categorys = []
+      def get_url_category(url_category):  # fonction recupére la page catégorie horror
+          # Telechargement de la page url horror
+          page = requests.get(url_category)
+          # création de l'objet Soup
+          soup = bs(page.text, "lxml")
+          return soup
+  
+      # print(url_category) # recup de l'url de la page 
+  
+      def get_all_links_book_to_category(soup):
+          # Récupération de tous les liens des livres dans la catégorie horror
+          links_categorys = []
+          listings = soup.find_all(class_="product_pod")
+          # A partir de chaques liens récupérer on peut obtenir le lien de livres
+          for listing in listings:
+              target_link_catg = listing.find("h3").a.get("href")
+              base_url = "https://books.toscrape.com/catalogue/category/books"
+              complete_lnk = base_url + target_link_catg
+              links_categorys.append(complete_lnk)
+          return links_categorys
+      all_links_category = get_all_links_book_to_category(get_url_category(url_category))
+      #print(all_links_category)
+      # -------------------------------------------------------------------------
+      def info_extract(links_categorys):
+          #Extraire les informations de chaques livres dans horror
+          for links_cats in links_categorys:
+              response_info_catgs = requests.get(links_cats).text
+              book_soup = bs(response_info_catgs,"lxml")
+              product_page_url= links_cats
+              table= book_soup.findAll('td')
+              title = book_soup.find('h1').text
+              universal_product_code = table[0].text
+              price_including_tax = table[2].text.replace('£', '').replace('Â', '')
+              price_excluding_tax = table[3].text.replace('£', '').replace('Â', '')
+              #number_available = table[5].text.removeprefix('In stock (').removesuffix('available)')
+              product_description_unicode = book_soup.select_one('article > p').text
+              product_description = unidecode.unidecode(product_description_unicode)
+              category = book_soup.find('ul', class_="breadcrumb").findAll('a')[2].text
+              review_rating = book_soup.find('p', class_='star-rating').get('class').pop()
+              image = book_soup.find('div',class_="item active").find('img')
+  
+              book_of_catg = {"product_page_url":product_page_url,
+                      "title":title,
+                      "product_description":product_description,
+                      "universal_product_code":universal_product_code,
+                      "price_including_tax":price_including_tax,
+                      "price_excluding_tax":price_excluding_tax,
+                      "category":category,
+                      "review_rating":review_rating,
+                      "image":image['src'],}
+                      #"number_available":number_available}
+              all_books_categorys.append(book_of_catg)
+  
+      info_extract(all_links_category)
+      #print(all_books_categorys)
+  
+      #   # --------------- Fichier CSV pour la catg Horror  -----------------
+      # Créer une liste pour les en-têtes
+      #en_tete = etc..
+      en_tete_catg = [  'product_page_url',
+                          'title',
+                          'product_description',
+                          'universal_product_code',
+                          'price_including_tax',
+                          'price_excluding_tax',
+                          'category',
+                          'review_rating',
+                          'image']
+  
+      # Créer un nouveau fichier pour écrire dans le fichier appelé « data.csv »
+      with open('category/' + category+'/data_'+ category + '.csv', 'w') as fichier_csv:
+         # Créer un objet writer (écriture) avec ce fichier
+         writer = csv.writer(fichier_csv, delimiter=';')
+         writer.writerow(en_tete_catg)
+  
+        # Boucle en passant les param's !
+         for books_of_catgs in all_books_categorys:
+            writer.writerow([books_of_catgs['product_page_url'],
+                             books_of_catgs['title'],
+                             books_of_catgs['product_description'],
+                             books_of_catgs['universal_product_code'],
+                             books_of_catgs['price_including_tax'],
+                             books_of_catgs['price_excluding_tax'],
+                             books_of_catgs['category'],
+                             books_of_catgs['review_rating'],
+                             books_of_catgs['image']])
+         #writer.writerow(all_books_categorys)
+  
+      print(" 💾 🧛🏻‍♂  Votre fichier CSV sur la catégorie "+ category + " viens d'être crée. Vous pouvez le télécharger !")  
+  
+    print(etape2(url_category))
+
+
+print(recup_all(links_catgs))
